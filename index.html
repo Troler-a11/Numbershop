@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SHOP.UA - Pro Catalog</title>
+<style>
+:root{--main:#ff4757;--dark:#2f3542;--light:#f1f2f6}
+body{font-family:Segoe UI, sans-serif;background:var(--light);margin:0;padding-bottom:50px}
+header{background:white;padding:20px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
+h1{margin:0;color:var(--dark);font-size:22px}
+.plus-btn{position:absolute;right:20px;top:20px;font-size:24px;cursor:pointer;color:var(--main);font-weight:bold}
+.controls{padding:15px;display:flex;flex-direction:column;gap:10px}
+input[type="text"],input[type="password"],input[type="number"],textarea{padding:12px;border:1px solid #ddd;border-radius:10px;outline:none;box-sizing:border-box}
+.price-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:5px}
+.filter-btn{background:white;border:1px solid var(--main);color:var(--main);padding:8px 15px;border-radius:20px;white-space:nowrap;cursor:pointer;font-size:13px}
+.filter-btn.active{background:var(--main);color:white}
+.catalog{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:15px}
+.item-card{background:white;border-radius:15px;padding:10px;box-shadow:0 4px 6px rgba(0,0,0,.05);cursor:pointer;outline:none;position:relative}
+.item-card img{width:100%;height:160px;object-fit:cover;border-radius:10px;display:block}
+.item-price{color:var(--main);font-weight:bold;margin:8px 0;font-size:18px}
+.item-title{font-size:14px;color:#333;height:34px;overflow:hidden}
+.item-id{font-size:10px;color:#999;margin-top:5px}
+.no-data{grid-column:1/3;text-align:center;padding:40px;color:#888}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:1000;justify-content:center;align-items:center}
+.modal.show{display:flex}
+.modal-content{background:white;width:95%;max-width:480px;padding:20px;border-radius:12px}
+.save-btn{background:#2ecc71;color:white;border:none;padding:12px;width:100%;border-radius:10px;font-weight:bold;cursor:pointer}
+.btn-secondary{background:#888;color:white;border:none;padding:10px 12px;border-radius:10px;cursor:pointer}
+.preview-img{width:100%;max-height:240px;object-fit:contain;border-radius:8px;display:block;margin-top:8px;background:#f7f7f7}
+.delete-btn{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:white;border:none;padding:6px 8px;border-radius:6px;cursor:pointer}
+.meta-row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.small{font-size:13px;padding:8px 10px;border-radius:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>BRAND-NAME.UA</h1>
+  <div class="plus-btn" id="openAdminBtn">+</div>
+</header>
+<div class="controls">
+  <input type="text" id="searchInput" placeholder="Пошук за ID товару...">
+  <div class="price-filters" id="priceFilters">
+    <button class="filter-btn active small" data-min="0" data-max="999999">Всі</button>
+    <button class="filter-btn small" data-min="100" data-max="200">100-200</button>
+    <button class="filter-btn small" data-min="201" data-max="500">201-500</button>
+    <button class="filter-btn small" data-min="501" data-max="1000">501-1000</button>
+    <button class="filter-btn small" data-min="1001" data-max="999999">1000+</button>
+  </div>
+</div>
+<div class="catalog" id="catalog"></div>
+<div id="adminModal" class="modal" aria-hidden="true">
+  <div class="modal-content" id="authBox">
+    <h3>Доступ обмежено</h3>
+    <p>Введіть код автора:</p>
+    <input type="password" id="authCode" placeholder="Код">
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="save-btn" id="confirmAuthBtn">Підтвердити</button>
+      <button class="btn-secondary" id="closeAuthBtn">Закрити</button>
+    </div>
+  </div>
+  <div class="modal-content" id="addBox" style="display:none">
+    <h3>Додати товар</h3>
+    <input type="text" id="pTitle" placeholder="Назва товару">
+    <input type="number" id="pPrice" placeholder="Ціна (грн)">
+    <textarea id="pDesc" placeholder="Опис товару"></textarea>
+    <label for="pFile">Виберіть фото:</label>
+    <input type="file" id="pFile" accept="image/*">
+    <img id="filePreview" class="preview-img" style="display:none">
+    <div class="meta-row"><small id="fileInfo" style="color:#666">Фото</small></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="save-btn" id="addProductBtn">🚀 Додати</button>
+      <button class="btn-secondary" id="cancelAddBtn">Назад</button>
+    </div>
+  </div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+let sessionToken = '';
+async function api(path, opts){ opts = opts || {}; opts.headers = opts.headers || {}; if(sessionToken) opts.headers['x-session'] = sessionToken; return fetch(path, opts); }
+async function loadProducts(){ try{ const r = await api('/api/products'); if(!r.ok) throw new Error(); return await r.json(); }catch(e){ return []; } }
+function renderProducts(products){
+  const c = $('catalog'); c.innerHTML = '';
+  if(!products.length){ const d = document.createElement('div'); d.className='no-data'; d.textContent='Товарів ще немає'; c.appendChild(d); return; }
+  products.forEach(p=>{
+    const card = document.createElement('div'); card.className='item-card';
+    if(p.isOwner){
+      const del = document.createElement('button'); del.className='delete-btn'; del.textContent='✕';
+      del.addEventListener('click', async (ev)=>{ ev.stopPropagation(); if(!confirm('Ви впевнені?')) return; const r = await api('/api/products/'+encodeURIComponent(p.id), { method:'DELETE' }); if(!r.ok){ const j = await r.json().catch(()=>({})); alert(j.error||'error'); return; } loadAndRender(); });
+      card.appendChild(del);
+    }
+    const img = document.createElement('img'); img.src = p.img || ''; img.alt = p.title || ''; card.appendChild(img);
+    const price = document.createElement('div'); price.className='item-price'; price.textContent=(p.price||'')+' грн'; card.appendChild(price);
+    const title = document.createElement('div'); title.className='item-title'; title.textContent=p.title||''; card.appendChild(title);
+    const idd = document.createElement('div'); idd.className='item-id'; idd.textContent='ID: '+(p.id||''); card.appendChild(idd);
+    c.appendChild(card);
+  });
+}
+async function loadAndRender(){ const prods = await loadProducts(); renderProducts(prods); }
+$('openAdminBtn').addEventListener('click', ()=>{ $('adminModal').classList.add('show'); $('adminModal').setAttribute('aria-hidden','false'); $('authBox').style.display=''; $('addBox').style.display='none'; $('authCode').value=''; });
+$('closeAuthBtn').addEventListener('click', ()=>{ $('adminModal').classList.remove('show'); $('adminModal').setAttribute('aria-hidden','true'); sessionToken=''; });
+$('confirmAuthBtn').addEventListener('click', async ()=>{ const code=$('authCode').value||''; if(!code) return alert('Введіть код'); const r=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})}); const j=await r.json(); if(!r.ok) return alert(j.error||'error'); sessionToken=j.token; $('authBox').style.display='none'; $('addBox').style.display='block'; $('pTitle').focus(); });
+$('cancelAddBtn').addEventListener('click', ()=>{ $('authBox').style.display=''; $('addBox').style.display='none'; });
+$('pFile').addEventListener('change', (e)=>{ const file=e.target.files&&e.target.files[0]; const pr=$('filePreview'), info=$('fileInfo'); if(!file){ pr.style.display='none'; info.textContent='Фото'; return; } pr.style.display=''; pr.src=URL.createObjectURL(file); pr.onload=()=>URL.revokeObjectURL(pr.src); info.textContent=file.name+' '+Math.round(file.size/1024)+'KB'; });
+$('addProductBtn').addEventListener('click', async ()=>{ const title=$('pTitle').value.trim(); const price=$('pPrice').value; const desc=$('pDesc').value.trim(); const file=$('pFile').files&&$('pFile').files[0]; if(!title||!price) return alert('Заповніть назву і ціну'); if(!sessionToken) return alert('Підтвердіть код'); const fd=new FormData(); fd.append('title',title); fd.append('price',price); fd.append('desc',desc); if(file) fd.append('image',file); const r=await api('/api/products',{method:'POST', body:fd}); const j=await r.json().catch(()=>({})); if(!r.ok) return alert(j.error||'error'); $('pTitle').value=''; $('pPrice').value=''; $('pDesc').value=''; $('pFile').value=''; $('filePreview').style.display='none'; $('fileInfo').textContent='Фото'; $('adminModal').classList.remove('show'); loadAndRender(); alert('Товар додано'); });
+document.getElementById('priceFilters').addEventListener('click', async (e)=>{ const btn=e.target.closest('.filter-btn'); if(!btn) return; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); const min=Number(btn.dataset.min)||0; const max=Number(btn.dataset.max)||999999999; const prods=await loadProducts(); renderProducts(prods.filter(p=>Number(p.price)>=min&&Number(p.price)<=max)); });
+$('searchInput').addEventListener('input', async (e)=>{ const q=(e.target.value||'').toUpperCase().trim(); const prods=await loadProducts(); if(!q) return renderProducts(prods); renderProducts(prods.filter(p=> (p.id||'').toUpperCase().includes(q) )); });
+loadAndRender();
+</script>
+</body>
+</html>

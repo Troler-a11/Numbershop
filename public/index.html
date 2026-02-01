@@ -115,21 +115,85 @@ const render = (prods) => {
   });
 };
 
-// Слухаємо базу
-onValue(productsRef, (snap) => {
-  const data = snap.val();
-  allProducts = data ? Object.keys(data).map(id => ({ id, ...data[id] })) : [];
-  render(allProducts);
-});
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SHOP.UA - Pro Catalog</title>
+<style>
+/* Твій стиль повністю збережено */
+:root{--main:#ff4757;--dark:#2f3542;--light:#f1f2f6}
+body{font-family:Segoe UI, sans-serif;background:var(--light);margin:0;padding-bottom:50px}
+header{background:white;padding:20px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
+h1{margin:0;color:var(--dark);font-size:22px}
+.plus-btn{position:absolute;right:20px;top:20px;font-size:24px;cursor:pointer;color:var(--main);font-weight:bold}
+.controls{padding:15px;display:flex;flex-direction:column;gap:10px}
+input[type="text"],input[type="password"],input[type="number"],textarea{padding:12px;border:1px solid #ddd;border-radius:10px;outline:none;box-sizing:border-box}
+.price-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:5px}
+.filter-btn{background:white;border:1px solid var(--main);color:var(--main);padding:8px 15px;border-radius:20px;white-space:nowrap;cursor:pointer;font-size:13px}
+.filter-btn.active{background:var(--main);color:white}
+.catalog{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:15px}
+.item-card{background:white;border-radius:15px;padding:10px;box-shadow:0 4px 6px rgba(0,0,0,.05);cursor:pointer;outline:none;position:relative}
+.item-card img{width:100%;height:160px;object-fit:cover;border-radius:10px;display:block}
+.item-price{color:var(--main);font-weight:bold;margin:8px 0;font-size:18px}
+.item-title{font-size:14px;color:#333;height:34px;overflow:hidden}
+.item-id{font-size:10px;color:#999;margin-top:5px}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:1000;justify-content:center;align-items:center}
+.modal.show{display:flex}
+.modal-content{background:white;width:95%;max-width:480px;padding:20px;border-radius:12px}
+.save-btn{background:#2ecc71;color:white;border:none;padding:12px;width:100%;border-radius:10px;font-weight:bold;cursor:pointer}
+.btn-secondary{background:#888;color:white;border:none;padding:10px 12px;border-radius:10px;cursor:pointer}
+.delete-btn{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:white;border:none;padding:6px 8px;border-radius:6px;cursor:pointer}
+#uploadStatus{font-size:12px;color:var(--main);margin-top:5px;display:none}
+</style>
+</head>
+<body>
 
-// Адмінка
-document.getElementById('openAdminBtn').onclick = () => {
-  document.getElementById('adminModal').classList.add('show');
-  document.getElementById('authBox').style.display = 'block';
-  document.getElementById('addBox').style.display = 'none';
-};
+<header>
+  <h1>BRAND-NAME.UA</h1>
+  <div class="plus-btn" id="openAdminBtn">+</div>
+</header>
 
-document.getElementById('confirmAuthBtn').onclick = () => {
+<div class="controls">
+  <input type="text" id="searchInput" placeholder="Пошук за ID товару...">
+  <div class="price-filters" id="priceFilters">
+    <button class="filter-btn active" data-min="0" data-max="999999">Всі</button>
+    <button class="filter-btn" data-min="100" data-max="200">100-200</button>
+    <button class="filter-btn" data-min="201" data-max="500">201-500</button>
+    <button class="filter-btn" data-min="501" data-max="1000">501-1000</button>
+    <button class="filter-btn" data-min="1001" data-max="999999">1000+</button>
+  </div>
+</div>
+
+<div class="catalog" id="catalog"></div>
+
+<div id="adminModal" class="modal">
+  <div class="modal-content" id="authBox">
+    <h3>Доступ обмежено</h3>
+    <input type="password" id="authCode" placeholder="Код">
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="save-btn" id="confirmAuthBtn">Підтвердити</button>
+      <button class="btn-secondary" id="closeAuthBtn">Закрити</button>
+    </div>
+  </div>
+  <div class="modal-content" id="addBox" style="display:none">
+    <h3>Додати товар</h3>
+    <input type="text" id="pTitle" placeholder="Назва товару">
+    <input type="number" id="pPrice" placeholder="Ціна (грн)">
+    <textarea id="pDesc" placeholder="Опис товару"></textarea>
+    
+    <p style="font-size:14px; margin-bottom:5px">Фото з галереї:</p>
+    <input type="file" id="pFile" accept="image/*">
+    <div id="uploadStatus">Завантаження фото на сервер...</div>
+
+    <div style="display:flex;gap:8px;margin-top:15px">
+      <button class="save-btn" id="addProductBtn">🚀 Зберегти вічно</button>
+      <button class="btn-secondary" id="cancelAddBtn">Назад</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
@@ -158,7 +222,7 @@ const render = (prods) => {
     card.className = 'item-card';
     card.innerHTML = `
       ${isAdmin ? `<button class="delete-btn" onclick="window.del('${p.id}')">✕</button>` : ''}
-      <img src="${p.img}" onerror="this.src='https://via.placeholder.com/160?text=No+Image'">
+      <img src="${p.img}">
       <div class="item-price">${p.price} грн</div>
       <div class="item-title">${p.title}</div>
       <div class="item-id">ID: ${p.id.substring(1, 8).toUpperCase()}</div>
@@ -186,18 +250,46 @@ document.getElementById('confirmAuthBtn').onclick = () => {
   } else { alert('Хибний код!'); }
 };
 
-document.getElementById('addProductBtn').onclick = () => {
+// ГОЛОВНА ЛОГІКА: Завантаження на ImgBB
+document.getElementById('addProductBtn').onclick = async () => {
   const title = document.getElementById('pTitle').value;
   const price = document.getElementById('pPrice').value;
-  const img = document.getElementById('pImgUrl').value;
-  const desc = document.getElementById('pDesc').value;
-  if (title && price && img) {
-    set(push(productsRef), { title, price, img, desc }).then(() => {
-      document.getElementById('adminModal').classList.remove('show');
-      document.getElementById('pTitle').value = '';
-      document.getElementById('pPrice').value = '';
-      document.getElementById('pImgUrl').value = '';
+  const fileInput = document.getElementById('pFile');
+  const status = document.getElementById('uploadStatus');
+
+  if (!title || !price || !fileInput.files[0]) {
+    alert('Заповни все і вибери фото!');
+    return;
+  }
+
+  status.style.display = 'block';
+  
+  // 1. Відправляємо файл на безкоштовний хостинг картинку
+  const formData = new FormData();
+  formData.append('image', fileInput.files[0]);
+  
+  try {
+    const res = await fetch('https://api.imgbb.com/1/upload?key=6384e37510d935409d023193e5066860', {
+      method: 'POST',
+      body: formData
     });
+    const json = await res.json();
+    const directUrl = json.data.url;
+
+    // 2. Зберігаємо в Firebase вже готове посилання
+    await set(push(productsRef), {
+      title,
+      price,
+      img: directUrl,
+      desc: document.getElementById('pDesc').value
+    });
+
+    status.style.display = 'none';
+    document.getElementById('adminModal').classList.remove('show');
+    fileInput.value = '';
+  } catch (err) {
+    alert('Помилка завантаження фото!');
+    status.style.display = 'none';
   }
 };
 
@@ -223,3 +315,5 @@ document.getElementById('cancelAddBtn').onclick = () => {
   document.getElementById('addBox').style.display = 'none';
 };
 </script>
+</body>
+</html>

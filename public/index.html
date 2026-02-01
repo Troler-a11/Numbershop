@@ -130,7 +130,55 @@ document.getElementById('openAdminBtn').onclick = () => {
 };
 
 document.getElementById('confirmAuthBtn').onclick = () => {
-  if (document.getElementById('authCode').value === 'xxxshop') { // Твій пароль повернуто
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD3BQTZeCp74owFliqECbUgufJ3UC6dFC8",
+  authDomain: "vip-shop-a2ec4.firebaseapp.com",
+  projectId: "vip-shop-a2ec4",
+  storageBucket: "vip-shop-a2ec4.firebasestorage.app",
+  messagingSenderId: "429877342673",
+  appId: "1:429877342673:web:bf2fbcddd5f3ba04c670f0"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const productsRef = ref(db, 'products');
+
+let isAdmin = false;
+let allProducts = [];
+
+const render = (prods) => {
+  const c = document.getElementById('catalog');
+  c.innerHTML = prods.length ? '' : '<div class="no-data">Товарів не знайдено</div>';
+  prods.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.innerHTML = `
+      ${isAdmin ? `<button class="delete-btn" onclick="window.del('${p.id}')">✕</button>` : ''}
+      <img src="${p.img}" onerror="this.src='https://via.placeholder.com/160?text=No+Image'">
+      <div class="item-price">${p.price} грн</div>
+      <div class="item-title">${p.title}</div>
+      <div class="item-id">ID: ${p.id.substring(1, 8).toUpperCase()}</div>
+    `;
+    c.appendChild(card);
+  });
+};
+
+onValue(productsRef, (snap) => {
+  const data = snap.val();
+  allProducts = data ? Object.keys(data).map(id => ({ id, ...data[id] })) : [];
+  render(allProducts);
+});
+
+document.getElementById('openAdminBtn').onclick = () => {
+  document.getElementById('adminModal').classList.add('show');
+};
+
+document.getElementById('confirmAuthBtn').onclick = () => {
+  if (document.getElementById('authCode').value === 'xxxshop') {
     isAdmin = true;
     document.getElementById('authBox').style.display = 'none';
     document.getElementById('addBox').style.display = 'block';
@@ -149,14 +197,12 @@ document.getElementById('addProductBtn').onclick = () => {
       document.getElementById('pTitle').value = '';
       document.getElementById('pPrice').value = '';
       document.getElementById('pImgUrl').value = '';
-      document.getElementById('pDesc').value = '';
     });
-  } else { alert('Заповни поля!'); }
+  }
 };
 
-window.del = (id) => { if (confirm('Видалити цей товар?')) remove(ref(db, 'products/' + id)); };
+window.del = (id) => { if (confirm('Видалити?')) remove(ref(db, 'products/' + id)); };
 
-// Твої фільтри цін повернуто
 document.getElementById('priceFilters').onclick = (e) => {
   const btn = e.target.closest('.filter-btn');
   if (!btn) return;
@@ -166,13 +212,9 @@ document.getElementById('priceFilters').onclick = (e) => {
   render(allProducts.filter(p => +p.price >= min && +p.price <= max));
 };
 
-// Твій пошук по ID та назві повернуто
 document.getElementById('searchInput').oninput = (e) => {
   const q = e.target.value.toLowerCase().trim();
-  render(allProducts.filter(p => 
-    p.id.toLowerCase().includes(q) || 
-    p.title.toLowerCase().includes(q)
-  ));
+  render(allProducts.filter(p => p.id.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)));
 };
 
 document.getElementById('closeAuthBtn').onclick = () => document.getElementById('adminModal').classList.remove('show');
@@ -181,6 +223,3 @@ document.getElementById('cancelAddBtn').onclick = () => {
   document.getElementById('addBox').style.display = 'none';
 };
 </script>
-</body>
-</html>
-

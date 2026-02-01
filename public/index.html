@@ -3,57 +3,64 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ULTRA SHOP PRO</title>
+<title>SHOP-NAME.UA</title>
 <style>
 :root{--main:#ff4757;--dark:#2f3542;--light:#f1f2f6;--gold:#ffd700;--gray:#888}
-body{font-family:'Segoe UI',sans-serif;background:var(--light);margin:0;padding-bottom:50px;overflow-x:hidden}
+body{font-family:'Segoe UI',sans-serif;background:var(--light);margin:0;padding-bottom:50px}
 
-/* Шапка та Контролі */
+/* Верхній номер */
+.top-contact{background:#fff;text-align:center;padding:5px;font-size:14px;border-bottom:1px solid #eee}
+.top-contact a{color:var(--main);text-decoration:none;font-weight:bold}
+
 header{background:#fff;padding:15px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
-.plus-btn{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:var(--main);font-weight:bold}
+.plus-btn{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:var(--main)}
+
 .controls{padding:10px;display:flex;flex-direction:column;gap:8px}
-input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outline:none;font-size:14px}
+.filters{display:flex;gap:5px;overflow-x:auto;padding:5px 0}
+.f-btn{background:#fff;border:1px solid var(--main);padding:6px 12px;border-radius:20px;white-space:nowrap;font-size:12px;cursor:pointer;color:var(--main)}
+.f-btn.active{background:var(--main);color:#fff}
 
-/* Каталог */
 .catalog{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
-.card{background:#fff;border-radius:12px;padding:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);border:4px solid transparent;position:relative}
-.card img{width:100%;height:130px;object-fit:cover;border-radius:8px}
-.price{color:var(--main);font-weight:bold;font-size:16px;margin:5px 0}
-.card-id{font-size:10px;color:#aaa}
+.card{background:#fff;border-radius:15px;padding:10px;border:4px solid transparent;transition:0.3s}
+.card img{width:100%;height:140px;object-fit:cover;border-radius:10px}
+.card-id{font-size:10px;color:#aaa;margin-top:5px}
 
-/* Рамки */
+/* Рамки за ціною */
 .r-black{border-color:#000} .r-gray{border-color:var(--gray)} .r-blue{border-color:#3498db}
 .r-yellow{border-color:#f1c40f} .r-red{border-color:#e74c3c} .r-green{border-color:#2ecc71}
 .r-purple{border-color:#9b59b6} .r-gold{border-color:var(--gold);box-shadow:0 0 10px var(--gold)}
 
-/* Модальне вікно (Фікс розміру) */
+/* Модалка перегляду */
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);z-index:1000;justify-content:center;align-items:center}
 .modal.show{display:flex}
 .m-cont{background:#fff;width:95%;max-width:400px;border-radius:20px;display:flex;flex-direction:column;position:relative;max-height:90vh;overflow:hidden}
+.slider{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:280px;background:#000;flex-shrink:0}
+.slider img{width:100%;height:100%;object-fit:contain;scroll-snap-align:start;flex-shrink:0}
 .m-body{padding:20px;overflow-y:auto;flex-grow:1}
-
-/* Слайдер */
-.slider-container{width:100%;height:250px;position:relative;background:#eee;flex-shrink:0}
-.slider{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100%;scrollbar-width:none}
-.slider::-webkit-scrollbar{display:none}
-.slider img{width:100%;height:100%;object-fit:cover;scroll-snap-align:start;flex-shrink:0}
-.close-x{position:absolute;top:10px;right:15px;font-size:35px;cursor:pointer;color:#fff;text-shadow:0 0 5px #000;z-index:11}
+.close-x{position:absolute;top:10px;right:15px;font-size:35px;cursor:pointer;color:#fff;z-index:20;text-shadow:0 0 5px #000}
 
 .order-footer{background:var(--main);color:#fff;padding:15px;border-radius:12px;text-align:center;margin-top:15px}
-.order-footer a{color:#fff;text-decoration:none;font-weight:bold;font-size:18px;display:block}
+.order-footer a{color:#fff;text-decoration:none;font-weight:bold;font-size:18px}
 </style>
 </head>
 <body>
 
+<div class="top-contact">замовити 👇 <a href="tel:+380XXXXXXXXX">+380XXXXXXXXX</a></div>
+
 <header>
-  <h2 style="margin:0">ULTRA SHOP</h2>
+  <h2 style="margin:0">SHOP-NAME.UA</h2>
   <div class="plus-btn" onclick="openAdmin()">+</div>
 </header>
 
 <div class="controls">
-  <input type="text" id="srch" placeholder="Пошук...">
-  <div style="display:flex;gap:5px;overflow-x:auto" id="fltr">
-    <button onclick="filterP(0,999999)" style="background:var(--main);color:#fff;border:none;border-radius:20px;padding:5px 15px">Всі</button>
+  <input type="text" id="srch" placeholder="Пошук за назвою або ID..." style="padding:12px;border-radius:10px;border:1px solid #ddd">
+  <div class="filters">
+    <button class="f-btn active" onclick="filterP(0,999999,this)">Всі</button>
+    <button class="f-btn" onclick="filterP(100,200,this)">100-200</button>
+    <button class="f-btn" onclick="filterP(201,500,this)">201-500</button>
+    <button class="f-btn" onclick="filterP(501,1000,this)">501-1000</button>
+    <button class="f-btn" onclick="filterP(1001,2000,this)">1001-2000</button>
+    <button class="f-btn" onclick="filterP(2001,999999,this)">2000+</button>
   </div>
 </div>
 
@@ -62,41 +69,39 @@ input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outl
 <div id="mView" class="modal">
   <div class="m-cont">
     <div class="close-x" onclick="closeM()">×</div>
-    <div class="slider-container" id="vWrap">
-        <div class="slider" id="vSlider"></div>
-    </div>
+    <div class="slider" id="vSlider"></div>
     <div class="m-body">
         <h2 id="vt" style="margin:0"></h2>
-        <div id="vp" style="color:var(--main);font-size:22px;font-weight:bold;margin:5px 0"></div>
-        <div id="vid" style="font-size:11px;color:#aaa;margin-bottom:10px"></div>
-        <div id="vd" style="line-height:1.5;color:#444"></div>
+        <div id="vp" style="color:var(--main);font-size:24px;font-weight:bold;margin:10px 0"></div>
+        <div id="vid" style="font-size:11px;color:#aaa;margin-bottom:15px;border-bottom:1px solid #eee;padding-bottom:5px"></div>
+        <div id="vd" style="line-height:1.6;color:#333"></div>
         
         <div class="order-footer">
-            <div>Замовляй тут 👇</div>
+            <div>замовляй тут поки є в наявності 👇</div>
             <a href="tel:+380XXXXXXXXX">+380XXXXXXXXX</a>
         </div>
-        <button id="delB" style="width:100%;margin-top:15px;color:red;border:1px solid red;background:none;border-radius:8px;padding:5px;display:none">Видалити товар</button>
+        <button id="delB" style="width:100%;margin-top:20px;color:red;border:1px solid red;background:none;padding:10px;border-radius:10px;display:none">Видалити товар</button>
     </div>
   </div>
 </div>
 
 <div id="mAdmin" class="modal">
-  <div class="m-cont" style="padding:20px; gap:10px">
+  <div class="m-cont" style="padding:20px">
     <div id="boxLogin">
-        <h3>Адмін-вхід</h3>
-        <input type="password" id="code" placeholder="Код" style="width:100%;margin-bottom:10px">
-        <button onclick="login()" style="width:100%;background:#2ecc71;color:#fff;border:none">Увійти</button>
+        <h3>Вхід (xxxshop)</h3>
+        <input type="password" id="code" placeholder="Код" style="width:96%;margin-bottom:10px;padding:10px">
+        <button onclick="login()" style="width:100%;background:#2ecc71;color:#fff;border:none;padding:12px;border-radius:10px">Увійти</button>
     </div>
     <div id="boxAdd" style="display:none; flex-direction:column; gap:8px">
         <h3>Додати товар</h3>
         <input type="text" id="t" placeholder="Назва">
         <input type="number" id="p" placeholder="Ціна">
-        <textarea id="d" placeholder="Опис (можна довгий)"></textarea>
-        <p style="font-size:11px;margin:0">Виберіть основне фото:</p>
-        <input type="file" id="f" accept="image/*">
-        <button id="btnS" style="background:#2ecc71;color:#fff;border:none" onclick="save()">🚀 Опублікувати</button>
+        <textarea id="d" placeholder="Опис" style="height:80px;padding:10px"></textarea>
+        <p style="margin:0;font-size:12px">Додай до 5 фото:</p>
+        <input type="file" class="img-in" accept="image/*" multiple>
+        <button id="btnS" style="background:#2ecc71;color:#fff;border:none;padding:12px;border-radius:10px" onclick="save()">🚀 Опублікувати</button>
     </div>
-    <button onclick="closeM()" style="margin-top:10px">Закрити</button>
+    <button onclick="closeM()" style="margin-top:10px;background:none;border:none;color:#888">Закрити</button>
   </div>
 </div>
 
@@ -140,24 +145,23 @@ const render = (items) => {
   items.forEach(i => {
     const div = document.createElement('div');
     div.className = `card ${getR(i.price)}`;
-    div.innerHTML = `<img src="${i.img}"><div class="price">${i.price} грн</div>
-                     <div style="font-size:13px;font-weight:bold">${i.title}</div>
+    div.innerHTML = `<img src="${i.imgs ? i.imgs[0] : i.img}"><div style="font-weight:bold;margin-top:8px">${i.price} грн</div>
+                     <div style="font-size:13px">${i.title}</div>
                      <div class="card-id">ID: ${i.id.substring(1,7)}</div>`;
     div.onclick = () => {
       const slider = document.getElementById('vSlider');
-      slider.innerHTML = `<img src="${i.img}">`; // Поки що одна картинка з бази
+      slider.innerHTML = (i.imgs || [i.img]).map(src => `<img src="${src}">`).join('');
       document.getElementById('vt').innerText = i.title;
       document.getElementById('vp').innerText = i.price + ' грн';
       document.getElementById('vd').innerText = i.desc || '';
       document.getElementById('vid').innerText = 'АРТИКУЛ: ' + i.id.toUpperCase();
-      document.getElementById('vWrap').style.borderColor = getR(i.price) === 'r-gold' ? 'gold' : '#eee';
       
       const dbnt = document.getElementById('delB');
       dbnt.style.display = isAdmin ? 'block' : 'none';
       dbnt.onclick = () => {
-          if(prompt('Код підтвердження:') === 'xxxshop') {
+          if(prompt('Введіть код для видалення:') === 'xxxshop') {
               remove(ref(db, 'products/'+i.id)); closeM();
-          } else alert('Помилка!');
+          }
       };
       document.getElementById('mView').classList.add('show');
     };
@@ -173,19 +177,29 @@ onValue(ref(db, 'products'), s => {
 
 window.save = async () => {
   const title = document.getElementById('t').value, price = +document.getElementById('p').value;
-  const desc = document.getElementById('d').value, file = document.getElementById('f').files[0];
-  if(!title || price < 5 || !file) return alert('Заповніть поля!');
+  const desc = document.getElementById('d').value, files = document.querySelector('.img-in').files;
+  if(!title || !price || files.length === 0) return alert('Заповніть назву, ціну та додайте хоча б 1 фото!');
   
-  document.getElementById('btnS').innerText = 'Завантаження...';
-  const fd = new FormData(); fd.append('image', file);
-  const r = await fetch('https://api.imgbb.com/1/upload?key=03c26bf2c4e95bbd1e544d9d2cad9672', {method:'POST', body:fd});
-  const res = await r.json();
-  set(push(ref(db, 'products')), { title, price, desc, img: res.data.url });
+  document.getElementById('btnS').innerText = 'Завантаження фото...';
+  const uploadedUrls = [];
+  
+  for(let file of Array.from(files).slice(0,5)) {
+      const fd = new FormData(); fd.append('image', file);
+      const r = await fetch('https://api.imgbb.com/1/upload?key=03c26bf2c4e95bbd1e544d9d2cad9672', {method:'POST', body:fd});
+      const res = await r.json();
+      uploadedUrls.push(res.data.url);
+  }
+
+  set(push(ref(db, 'products')), { title, price, desc, imgs: uploadedUrls });
   closeM();
   document.getElementById('btnS').innerText = '🚀 Опублікувати';
 };
 
-window.filterP = (min, max) => render(all.filter(i => i.price >= min && i.price <= max));
+window.filterP = (min, max, btn) => {
+    document.querySelectorAll('.f-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    render(all.filter(i => i.price >= min && i.price <= max));
+};
 
 document.getElementById('srch').oninput = e => {
   const q = e.target.value.toLowerCase();

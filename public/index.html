@@ -7,20 +7,35 @@
 <style>
 :root{--main:#ff4757;--dark:#2f3542;--light:#f1f2f6}
 body{font-family:Segoe UI,sans-serif;background:var(--light);margin:0;padding-bottom:50px;overflow-x:hidden}
+
+/* Шапка з номером */
 .top-order{text-align:center;padding:8px;background:#fff;font-size:13px;border-bottom:1px solid #eee}
 .top-order a{color:var(--main);text-decoration:none;font-weight:bold}
+
 header{background:white;padding:15px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
-.plus-btn{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:var(--main)}
+h1{margin:0;font-size:20px;color:var(--dark)}
+.plus-btn{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:var(--main);font-weight:bold}
+
+/* Пошук та фільтри ціни */
 .controls{padding:15px;display:flex;flex-direction:column;gap:10px}
 input,button{padding:12px;border-radius:10px;border:1px solid #ddd;outline:none;font-size:14px}
+.price-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:5px}
+.filter-btn{background:white;border:1px solid var(--main);color:var(--main);padding:8px 15px;border-radius:20px;white-space:nowrap;cursor:pointer;font-size:13px}
+.filter-btn.active{background:var(--main);color:white}
+
+/* Каталог */
 .catalog{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}
 .item-card{background:white;border-radius:15px;padding:10px;box-shadow:0 4px 6px rgba(0,0,0,.05);position:relative}
 .item-card img{width:100%;height:150px;object-fit:cover;border-radius:10px;background:#eee}
 .item-price{color:var(--main);font-weight:bold;font-size:18px;margin:5px 0}
+
+/* Модальне вікно */
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:1000;justify-content:center;align-items:center}
 .modal.show{display:flex}
 .modal-content{background:white;width:90%;max-width:380px;padding:20px;border-radius:15px;display:flex;flex-direction:column;gap:10px}
 .save-btn{background:#2ecc71;color:white;border:none;font-weight:bold;cursor:pointer}
+.close-modal-btn{background:#888;color:white;border:none;padding:10px;border-radius:10px;cursor:pointer}
+
 #loadingOverlay{display:none;color:var(--main);font-weight:bold;text-align:center;font-size:14px}
 .del-btn{position:absolute;top:5px;right:5px;background:red;color:white;border:none;border-radius:5px;padding:2px 6px;z-index:10}
 </style>
@@ -30,32 +45,39 @@ input,button{padding:12px;border-radius:10px;border:1px solid #ddd;outline:none;
 <div class="top-order">замовити👇<br><a href="tel:+380XXXXXXXXX">+380XXXXXXXXX</a></div>
 
 <header>
-  <h1 style="margin:0;font-size:20px">BRAND-NAME.UA</h1>
+  <h1>BRAND-NAME.UA</h1>
   <div class="plus-btn" id="openAdminBtn">+</div>
 </header>
 
 <div class="controls">
-  <input type="text" id="searchInput" placeholder="Пошук...">
+  <input type="text" id="searchInput" placeholder="Пошук за ID або назвою...">
+  <div class="price-filters" id="priceFilters">
+    <button class="filter-btn active" data-min="0" data-max="999999">Всі</button>
+    <button class="filter-btn" data-min="100" data-max="200">100-200</button>
+    <button class="filter-btn" data-min="201" data-max="500">201-500</button>
+    <button class="filter-btn" data-min="501" data-max="1000">501-1000</button>
+  </div>
 </div>
 
 <div class="catalog" id="catalog"></div>
 
 <div id="adminModal" class="modal">
   <div class="modal-content" id="authBox">
-    <h3 style="margin:0">Вхід</h3>
-    <input type="password" id="authCode" placeholder="Код (xxxshop)">
+    <h3 style="margin:0">Вхід в адмін-панель</h3>
+    <input type="password" id="authCode" placeholder="Введіть секретний код">
     <button class="save-btn" id="confirmAuthBtn">Увійти</button>
+    <button class="close-modal-btn" onclick="closeModal()">Закрити</button>
   </div>
   
   <div class="modal-content" id="addBox" style="display:none">
-    <h3 style="margin:0">Новий товар</h3>
-    <input type="text" id="pTitle" placeholder="Назва">
-    <input type="number" id="pPrice" placeholder="Ціна">
-    <label style="font-size:12px;color:#666">Фото з галереї:</label>
+    <h3 style="margin:0">Додати товар</h3>
+    <input type="text" id="pTitle" placeholder="Назва товару">
+    <input type="number" id="pPrice" placeholder="Ціна (грн)">
+    <label style="font-size:12px;color:#666">Завантажити фото з галереї:</label>
     <input type="file" id="pImgFile" accept="image/*">
-    <div id="loadingOverlay">⏳ Завантаження фото в хмару...</div>
-    <button class="save-btn" id="addProductBtn">🚀 Зберегти товар</button>
-    <button style="background:#888;color:white;border:none;padding:10px;border-radius:10px" onclick="document.getElementById('adminModal').classList.remove('show')">Скасувати</button>
+    <div id="loadingOverlay">⏳ Завантаження фото...</div>
+    <button class="save-btn" id="addProductBtn">🚀 Зберегти</button>
+    <button class="close-modal-btn" onclick="closeModal()">Закрити</button>
   </div>
 </div>
 
@@ -77,9 +99,10 @@ const productsRef = ref(db, 'products');
 
 let isAdmin = false;
 let allProducts = [];
-const IMGBB_KEY = '03c26bf2c4e95bbd1e544d9d2cad9672'; // Твій ключ вставлено!
+const IMGBB_KEY = '03c26bf2c4e95bbd1e544d9d2cad9672';
 
-window.del = (id) => { if(confirm('Видалити?')) remove(ref(db, 'products/' + id)); };
+window.closeModal = () => document.getElementById('adminModal').classList.remove('show');
+window.del = (id) => { if(confirm('Видалити цей товар?')) remove(ref(db, 'products/' + id)); };
 
 const render = (prods) => {
   const c = document.getElementById('catalog');
@@ -104,7 +127,16 @@ onValue(productsRef, (snap) => {
   render(allProducts);
 });
 
-document.getElementById('openAdminBtn').onclick = () => document.getElementById('adminModal').classList.add('show');
+document.getElementById('openAdminBtn').onclick = () => {
+    document.getElementById('adminModal').classList.add('show');
+    if(isAdmin) {
+        document.getElementById('authBox').style.display = 'none';
+        document.getElementById('addBox').style.display = 'flex';
+    } else {
+        document.getElementById('authBox').style.display = 'flex';
+        document.getElementById('addBox').style.display = 'none';
+    }
+};
 
 document.getElementById('confirmAuthBtn').onclick = () => {
   if (document.getElementById('authCode').value === 'xxxshop') {
@@ -120,7 +152,7 @@ document.getElementById('addProductBtn').onclick = async () => {
   const price = document.getElementById('pPrice').value;
   const fileInput = document.getElementById('pImgFile');
   
-  if (!title || !price || !fileInput.files[0]) return alert('Заповніть всі поля та виберіть фото!');
+  if (!title || !price || !fileInput.files[0]) return alert('Заповніть всі поля!');
 
   document.getElementById('loadingOverlay').style.display = 'block';
   document.getElementById('addProductBtn').disabled = true;
@@ -136,21 +168,27 @@ document.getElementById('addProductBtn').onclick = async () => {
     const resData = await resp.json();
     
     if (resData.success) {
-      const imgUrl = resData.data.url;
-      set(push(productsRef), { title, price, img: imgUrl });
-      document.getElementById('adminModal').classList.remove('show');
+      set(push(productsRef), { title, price, img: resData.data.url });
+      closeModal();
       document.getElementById('pTitle').value = ''; 
       document.getElementById('pPrice').value = '';
       document.getElementById('pImgFile').value = '';
-    } else {
-      alert('Помилка ImgBB: ' + resData.error.message);
     }
-  } catch (e) {
-    alert('Помилка мережі при завантаженні фото');
-  } finally {
+  } catch (e) { alert('Помилка завантаження'); }
+  finally {
     document.getElementById('loadingOverlay').style.display = 'none';
     document.getElementById('addProductBtn').disabled = false;
   }
+};
+
+// Фільтр за ціною
+document.getElementById('priceFilters').onclick = (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const min = +btn.dataset.min, max = +btn.dataset.max;
+  render(allProducts.filter(p => +p.price >= min && +p.price <= max));
 };
 
 document.getElementById('searchInput').oninput = (e) => {
@@ -160,5 +198,3 @@ document.getElementById('searchInput').oninput = (e) => {
 </script>
 </body>
 </html>
- 
-

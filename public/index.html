@@ -3,28 +3,50 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SHOP UA</title>
+<title>ULTRA SHOP</title>
 <style>
 :root{--main:#ff4757;--dark:#2f3542;--light:#f1f2f6;--gold:#ffd700}
-body{font-family:sans-serif;background:var(--light);margin:0;padding-bottom:50px}
+body{font-family:'Segoe UI',sans-serif;background:var(--light);margin:0;padding-bottom:50px}
+
+/* Шапка */
 header{background:#fff;padding:15px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
-.plus-btn{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:var(--main)}
+.plus-btn{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:var(--main);font-weight:bold}
+
+/* Пошук та фільтри */
 .controls{padding:10px;display:flex;flex-direction:column;gap:8px}
 input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outline:none}
 .filters{display:flex;gap:5px;overflow-x:auto;padding:5px}
-.f-btn{background:#fff;border:1px solid var(--main);padding:6px 12px;border-radius:20px;white-space:nowrap;font-size:12px}
+.f-btn{background:#fff;border:1px solid var(--main);padding:6px 12px;border-radius:20px;white-space:nowrap;font-size:12px;cursor:pointer}
 .f-btn.active{background:var(--main);color:#fff}
+
+/* Каталог */
 .catalog{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
-.card{background:#fff;border-radius:12px;padding:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);border:3px solid transparent}
+.card{background:#fff;border-radius:12px;padding:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);border:4px solid transparent;position:relative;transition:0.3s}
 .card img{width:100%;height:130px;object-fit:cover;border-radius:8px}
 .price{color:var(--main);font-weight:bold;font-size:16px;margin:5px 0}
-/* Рамки */
-.b-gold{border-color:var(--gold);box-shadow:0 0 10px var(--gold)}
-.b-high{border-color:#ffa502}
-.b-mid{border-color:#70a1ff}
-.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:1000;justify-content:center;align-items:center}
+.card-id{font-size:10px;color:#aaa;text-transform:uppercase}
+
+/* Рамки за ціною */
+.r-black{border-color:#000}
+.r-white{border-color:#fff;box-shadow:0 0 5px #ccc}
+.r-blue{border-color:#3498db}
+.r-yellow{border-color:#f1c40f}
+.r-red{border-color:#e74c3c}
+.r-green{border-color:#2ecc71}
+.r-purple{border-color:#9b59b6}
+.r-gold{border-color:var(--gold);box-shadow:0 0 15px var(--gold);animation:glow 1s infinite alternate}
+@keyframes glow{from{opacity:0.8}to{opacity:1}}
+
+/* Модалки */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;justify-content:center;align-items:center}
 .modal.show{display:flex}
-.m-cont{background:#fff;width:90%;max-width:350px;padding:20px;border-radius:15px;display:flex;flex-direction:column;gap:10px}
+.m-cont{background:#fff;width:90%;max-width:380px;padding:20px;border-radius:20px;display:flex;flex-direction:column;gap:12px;position:relative;max-height:90vh;overflow-y:auto}
+
+/* Красивий опис */
+.close-x{position:absolute;top:10px;right:15px;font-size:30px;cursor:pointer;color:#333;z-index:10;font-weight:bold}
+.v-img-wrap{border:4px solid #eee;border-radius:15px;overflow:hidden;line-height:0}
+.order-footer{background:var(--main);color:#fff;padding:15px;border-radius:12px;text-align:center;margin-top:10px}
+.order-footer a{color:#fff;text-decoration:none;font-weight:bold;font-size:18px;display:block;margin-top:5px}
 </style>
 </head>
 <body>
@@ -37,11 +59,12 @@ input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outl
 <div class="controls">
   <input type="text" id="srch" placeholder="Пошук за ID або назвою...">
   <div class="filters">
-    <button class="f-btn active" onclick="filterP(0,99999,this)">Всі</button>
+    <button class="f-btn active" onclick="filterP(0,999999,this)">Всі</button>
     <button class="f-btn" onclick="filterP(1,99,this)">1-99</button>
-    <button class="f-btn" onclick="filterP(100,1000,this)">100-1000</button>
+    <button class="f-btn" onclick="filterP(100,500,this)">100-500</button>
+    <button class="f-btn" onclick="filterP(501,1000,this)">501-1000</button>
     <button class="f-btn" onclick="filterP(1001,2000,this)">1001-2000</button>
-    <button class="f-btn" onclick="filterP(2001,99999,this)">2000+</button>
+    <button class="f-btn" onclick="filterP(2001,999999,this)">2000+</button>
   </div>
 </div>
 
@@ -49,30 +72,38 @@ input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outl
 
 <div id="mAdmin" class="modal">
   <div class="m-cont" id="boxLogin">
-    <h3>Вхід</h3>
-    <input type="password" id="code" placeholder="Код">
+    <div class="close-x" onclick="closeM()">×</div>
+    <h3>Вхід в систему</h3>
+    <input type="password" id="code" placeholder="Секретний код">
     <button style="background:#2ecc71;color:#fff;border:none" onclick="login()">Увійти</button>
-    <button onclick="closeM()">Закрити</button>
   </div>
   <div class="m-cont" id="boxAdd" style="display:none">
-    <h3>Новий товар</h3>
+    <div class="close-x" onclick="closeM()">×</div>
+    <h3>Додати товар</h3>
     <input type="text" id="t" placeholder="Назва">
     <input type="number" id="p" placeholder="Ціна">
-    <textarea id="d" placeholder="Опис"></textarea>
+    <textarea id="d" placeholder="Опис товару (красиво напиши тут)"></textarea>
     <input type="file" id="f" accept="image/*">
-    <button id="btnS" style="background:#2ecc71;color:#fff;border:none" onclick="save()">Зберегти</button>
-    <button onclick="closeM()">Закрити</button>
+    <button id="btnS" style="background:#2ecc71;color:#fff;border:none" onclick="save()">🚀 Опублікувати</button>
   </div>
 </div>
 
-<div id="mView" class="modal" onclick="closeM()">
-  <div class="m-cont" onclick="event.stopPropagation()">
-    <img id="vi" style="width:100%;border-radius:10px">
-    <h3 id="vt" style="margin:10px 0 5px"></h3>
-    <div id="vp" style="color:var(--main);font-weight:bold;font-size:20px"></div>
-    <p id="vd" style="font-size:14px;color:#555"></p>
-    <button id="delB" style="background:red;color:#fff;border:none;display:none">Видалити</button>
-    <button onclick="closeM()">Закрити</button>
+<div id="mView" class="modal">
+  <div class="m-cont">
+    <div class="close-x" onclick="closeM()">×</div>
+    <div class="v-img-wrap" id="vWrap">
+        <img id="vi" style="width:100%">
+    </div>
+    <h2 id="vt" style="margin:10px 0 0"></h2>
+    <div id="vp" style="color:var(--main);font-size:24px;font-weight:bold"></div>
+    <div id="vid" style="font-size:11px;color:#aaa;margin-bottom:10px"></div>
+    <div id="vd" style="line-height:1.6;color:#444;border-top:1px solid #eee;padding-top:10px"></div>
+    
+    <div class="order-footer">
+        <div>замовляй тут поки є в наявності 👇</div>
+        <a href="tel:+380XXXXXXXXX">+380XXXXXXXXX</a>
+    </div>
+    <button id="delB" style="background:#eee;border:none;color:red;margin-top:10px;display:none">Видалити (Admin)</button>
   </div>
 </div>
 
@@ -100,7 +131,18 @@ window.login = () => {
     isAdmin = true;
     document.getElementById('boxLogin').style.display='none';
     document.getElementById('boxAdd').style.display='flex';
-  } else alert('Невірно!');
+  } else alert('Код невірний!');
+};
+
+const getR = (p) => {
+    if(p >= 2001) return 'r-gold';
+    if(p >= 1500) return 'r-purple';
+    if(p >= 1000) return 'r-green';
+    if(p >= 700) return 'r-red';
+    if(p >= 400) return 'r-yellow';
+    if(p >= 200) return 'r-blue';
+    if(p >= 100) return 'r-white';
+    return 'r-black';
 };
 
 const render = (items) => {
@@ -108,18 +150,20 @@ const render = (items) => {
   cat.innerHTML = '';
   items.forEach(i => {
     const div = document.createElement('div');
-    let bc = ''; 
-    if(i.price >= 2001) bc = 'b-gold';
-    else if(i.price >= 1001) bc = 'b-high';
-    else if(i.price >= 500) bc = 'b-mid';
-    
-    div.className = `card ${bc}`;
-    div.innerHTML = `<img src="${i.img}"><div class="price">${i.price} грн</div><div style="font-size:13px">${i.title}</div>`;
+    div.className = `card ${getR(i.price)}`;
+    div.innerHTML = `
+        <img src="${i.img}">
+        <div class="price">${i.price} грн</div>
+        <div style="font-size:13px;font-weight:bold">${i.title}</div>
+        <div class="card-id">ID: ${i.id.substring(1,7)}</div>
+    `;
     div.onclick = () => {
       document.getElementById('vi').src = i.img;
       document.getElementById('vt').innerText = i.title;
       document.getElementById('vp').innerText = i.price + ' грн';
-      document.getElementById('vd').innerText = i.desc || '';
+      document.getElementById('vd').innerText = i.desc || 'Опис не вказано';
+      document.getElementById('vid').innerText = 'АРТИКУЛ: ' + i.id.toUpperCase();
+      document.getElementById('vWrap').className = 'v-img-wrap ' + getR(i.price);
       const dbnt = document.getElementById('delB');
       dbnt.style.display = isAdmin ? 'block' : 'none';
       dbnt.onclick = () => { if(confirm('Видалити?')) { remove(ref(db, 'products/'+i.id)); closeM(); } };
@@ -138,15 +182,18 @@ onValue(ref(db, 'products'), s => {
 window.save = async () => {
   const title = document.getElementById('t').value, price = +document.getElementById('p').value;
   const desc = document.getElementById('d').value, file = document.getElementById('f').files[0];
-  if(!title || price < 5 || !file) return alert('Ціна < 5 або поля пусті!');
+  if(!title || price < 5 || !file) return alert('Заповніть всі поля! Ціна мінімум 5 грн.');
   
-  document.getElementById('btnS').innerText = 'Завантаження...';
+  document.getElementById('btnS').innerText = '⏳ Завантаження...';
   const fd = new FormData(); fd.append('image', file);
-  const r = await fetch('https://api.imgbb.com/1/upload?key=03c26bf2c4e95bbd1e544d9d2cad9672', {method:'POST', body:fd});
-  const res = await r.json();
-  set(push(ref(db, 'products')), { title, price, desc, img: res.data.url });
-  closeM();
-  document.getElementById('btnS').innerText = 'Зберегти';
+  try {
+    const r = await fetch('https://api.imgbb.com/1/upload?key=03c26bf2c4e95bbd1e544d9d2cad9672', {method:'POST', body:fd});
+    const res = await r.json();
+    set(push(ref(db, 'products')), { title, price, desc, img: res.data.url });
+    closeM();
+    document.getElementById('t').value=''; document.getElementById('p').value=''; document.getElementById('d').value='';
+  } catch(e) { alert('Помилка мережі!'); }
+  finally { document.getElementById('btnS').innerText = '🚀 Опублікувати'; }
 };
 
 window.filterP = (min, max, btn) => {
@@ -156,10 +203,11 @@ window.filterP = (min, max, btn) => {
 };
 
 document.getElementById('srch').oninput = e => {
-  const q = e.target.value.toLowerCase();
+  const q = e.target.value.toLowerCase().trim();
   render(all.filter(i => i.title.toLowerCase().includes(q) || i.id.toLowerCase().includes(q)));
 };
 </script>
 </body>
 </html>
+
 

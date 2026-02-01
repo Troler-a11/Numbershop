@@ -7,11 +7,28 @@
 <style>
 :root{--main:#ff4757;--dark:#2f3542;--light:#f1f2f6}
 body{font-family:Segoe UI, sans-serif;background:var(--light);margin:0;padding-bottom:50px}
-header{background:white;padding:20px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
+
+/* Стиль для блоку замовлення зверху */
+.top-order {
+    text-align: center;
+    padding: 5px 0;
+    background: #fff;
+    font-size: 12px;
+    color: #555;
+    border-bottom: 1px solid #eee;
+}
+.top-order a {
+    color: var(--main);
+    text-decoration: none;
+    font-weight: bold;
+    display: block;
+}
+
+header{background:white;padding:15px 20px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
 h1{margin:0;color:var(--dark);font-size:22px}
-.plus-btn{position:absolute;right:20px;top:20px;font-size:24px;cursor:pointer;color:var(--main);font-weight:bold}
+.plus-btn{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:var(--main);font-weight:bold}
 .controls{padding:15px;display:flex;flex-direction:column;gap:10px}
-input,textarea{padding:12px;border:1px solid #ddd;border-radius:10px;outline:none;box-sizing:border-box;width:100%;margin-bottom:8px}
+input, textarea{padding:12px;border:1px solid #ddd;border-radius:10px;outline:none;box-sizing:border-box; width: 100%; margin-bottom: 5px;}
 .price-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:5px}
 .filter-btn{background:white;border:1px solid var(--main);color:var(--main);padding:8px 15px;border-radius:20px;white-space:nowrap;cursor:pointer;font-size:13px}
 .filter-btn.active{background:var(--main);color:white}
@@ -26,10 +43,15 @@ input,textarea{padding:12px;border:1px solid #ddd;border-radius:10px;outline:non
 .modal-content{background:white;width:90%;max-width:400px;padding:20px;border-radius:12px}
 .save-btn{background:#2ecc71;color:white;border:none;padding:12px;width:100%;border-radius:10px;font-weight:bold;cursor:pointer;margin-top:10px}
 .btn-secondary{background:#888;color:white;border:none;padding:10px;border-radius:10px;width:100%;margin-top:5px;cursor:pointer}
-.del-btn{position:absolute;top:5px;right:5px;background:red;color:white;border:none;border-radius:5px;padding:2px 6px;cursor:pointer;z-index:10}
+.del-btn{position:absolute;top:5px;right:5px;background:red;color:white;border:none;border-radius:5px;padding:2px 6px;cursor:pointer;z-index:11}
 </style>
 </head>
 <body>
+
+<div class="top-order">
+    замовити👇
+    <a href="tel:+380XXXXXXXXX">+380XXXXXXXXX</a>
+</div>
 
 <header>
   <h1>BRAND-NAME.UA</h1>
@@ -68,6 +90,7 @@ input,textarea{padding:12px;border:1px solid #ddd;border-radius:10px;outline:non
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
+// Твій конфіг з скріншотів
 const firebaseConfig = {
   apiKey: "AIzaSyD3BQTZeCp74owFliqECbUgufJ3UC6dFC8",
   authDomain: "vip-shop-a2ec4.firebaseapp.com",
@@ -78,6 +101,87 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const productsRef = ref(db, 'products');
+
+let isAdmin = false;
+let allProducts = [];
+
+// Функція видалення (через window щоб працювала в onclick)
+window.del = (id) => { if(confirm('Видалити цей товар?')) remove(ref(db, 'products/' + id)); };
+
+const render = (prods) => {
+  const c = document.getElementById('catalog');
+  c.innerHTML = '';
+  prods.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.innerHTML = `
+      ${isAdmin ? `<button class="del-btn" onclick="del('${p.id}')">✕</button>` : ''}
+      <img src="${p.img}" onerror="this.src='https://via.placeholder.com/160?text=No+Photo'">
+      <div class="item-price">${p.price} грн</div>
+      <div class="item-title">${p.title}</div>
+      <div class="item-id">ID: ${p.id.substring(1, 8).toUpperCase()}</div>
+    `;
+    c.appendChild(card);
+  });
+};
+
+onValue(productsRef, (snap) => {
+  const data = snap.val();
+  allProducts = data ? Object.keys(data).map(id => ({ id, ...data[id] })) : [];
+  render(allProducts);
+});
+
+document.getElementById('openAdminBtn').onclick = () => {
+    document.getElementById('adminModal').classList.add('show');
+    if(isAdmin) {
+        document.getElementById('authBox').style.display = 'none';
+        document.getElementById('addBox').style.display = 'block';
+    }
+};
+
+document.getElementById('closeModalBtn').onclick = () => document.getElementById('adminModal').classList.remove('show');
+
+document.getElementById('confirmAuthBtn').onclick = () => {
+  if (document.getElementById('authCode').value === 'xxxshop') {
+    isAdmin = true;
+    document.getElementById('authBox').style.display = 'none';
+    document.getElementById('addBox').style.display = 'block';
+    render(allProducts);
+  } else { alert('Хибний код!'); }
+};
+
+document.getElementById('addProductBtn').onclick = () => {
+  const title = document.getElementById('pTitle').value;
+  const price = document.getElementById('pPrice').value;
+  const img = document.getElementById('pImg').value;
+  if (title && price && img) {
+    set(push(productsRef), { title, price, img });
+    document.getElementById('adminModal').classList.remove('show');
+    document.getElementById('pTitle').value = ''; 
+    document.getElementById('pPrice').value = ''; 
+    document.getElementById('pImg').value = '';
+  } else {
+      alert('Заповніть всі поля!');
+  }
+};
+
+document.getElementById('priceFilters').onclick = (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const min = +btn.dataset.min, max = +btn.dataset.max;
+  render(allProducts.filter(p => +p.price >= min && +p.price <= max));
+};
+
+document.getElementById('searchInput').oninput = (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  render(allProducts.filter(p => p.id.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)));
+};
+</script>
+</body>
+</html>
 const productsRef = ref(db, 'products');
 
 let isAdmin = false;

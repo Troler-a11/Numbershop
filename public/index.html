@@ -8,18 +8,15 @@
 :root{--main:#ff4757;--dark:#2f3542;--light:#f1f2f6;--gold:#ffd700}
 body{font-family:'Segoe UI',sans-serif;background:var(--light);margin:0;padding-bottom:50px}
 
-/* Шапка */
 header{background:#fff;padding:15px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
 .plus-btn{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:var(--main);font-weight:bold}
 
-/* Пошук та фільтри */
 .controls{padding:10px;display:flex;flex-direction:column;gap:8px}
 input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outline:none}
 .filters{display:flex;gap:5px;overflow-x:auto;padding:5px}
 .f-btn{background:#fff;border:1px solid var(--main);padding:6px 12px;border-radius:20px;white-space:nowrap;font-size:12px;cursor:pointer}
 .f-btn.active{background:var(--main);color:#fff}
 
-/* Каталог */
 .catalog{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}
 .card{background:#fff;border-radius:12px;padding:8px;box-shadow:0 2px 4px rgba(0,0,0,.05);border:4px solid transparent;position:relative;transition:0.3s}
 .card img{width:100%;height:130px;object-fit:cover;border-radius:8px}
@@ -28,7 +25,7 @@ input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outl
 
 /* Рамки за ціною */
 .r-black{border-color:#000}
-.r-white{border-color:#fff;box-shadow:0 0 5px #ccc}
+.r-gray{border-color:#888} /* Замість білого - сірий */
 .r-blue{border-color:#3498db}
 .r-yellow{border-color:#f1c40f}
 .r-red{border-color:#e74c3c}
@@ -37,12 +34,10 @@ input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outl
 .r-gold{border-color:var(--gold);box-shadow:0 0 15px var(--gold);animation:glow 1s infinite alternate}
 @keyframes glow{from{opacity:0.8}to{opacity:1}}
 
-/* Модалки */
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;justify-content:center;align-items:center}
 .modal.show{display:flex}
 .m-cont{background:#fff;width:90%;max-width:380px;padding:20px;border-radius:20px;display:flex;flex-direction:column;gap:12px;position:relative;max-height:90vh;overflow-y:auto}
 
-/* Красивий опис */
 .close-x{position:absolute;top:10px;right:15px;font-size:30px;cursor:pointer;color:#333;z-index:10;font-weight:bold}
 .v-img-wrap{border:4px solid #eee;border-radius:15px;overflow:hidden;line-height:0}
 .order-footer{background:var(--main);color:#fff;padding:15px;border-radius:12px;text-align:center;margin-top:10px}
@@ -82,7 +77,7 @@ input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outl
     <h3>Додати товар</h3>
     <input type="text" id="t" placeholder="Назва">
     <input type="number" id="p" placeholder="Ціна">
-    <textarea id="d" placeholder="Опис товару (красиво напиши тут)"></textarea>
+    <textarea id="d" placeholder="Опис товару"></textarea>
     <input type="file" id="f" accept="image/*">
     <button id="btnS" style="background:#2ecc71;color:#fff;border:none" onclick="save()">🚀 Опублікувати</button>
   </div>
@@ -103,7 +98,7 @@ input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outl
         <div>замовляй тут поки є в наявності 👇</div>
         <a href="tel:+380XXXXXXXXX">+380XXXXXXXXX</a>
     </div>
-    <button id="delB" style="background:#eee;border:none;color:red;margin-top:10px;display:none">Видалити (Admin)</button>
+    <button id="delB" style="background:#fefefe;border:1px solid #ddd;color:red;margin-top:10px;display:none;padding:5px;border-radius:8px;cursor:pointer">🗑 Видалити товар</button>
   </div>
 </div>
 
@@ -122,6 +117,7 @@ const conf = {
 const app = initializeApp(conf);
 const db = getDatabase(app);
 let isAdmin = false, all = [];
+const IMGBB = '03c26bf2c4e95bbd1e544d9d2cad9672';
 
 window.closeM = () => { document.querySelectorAll('.modal').forEach(m=>m.classList.remove('show')); };
 window.openAdmin = () => { document.getElementById('mAdmin').classList.add('show'); };
@@ -141,7 +137,7 @@ const getR = (p) => {
     if(p >= 700) return 'r-red';
     if(p >= 400) return 'r-yellow';
     if(p >= 200) return 'r-blue';
-    if(p >= 100) return 'r-white';
+    if(p >= 100) return 'r-gray'; /* Змінено на сірий */
     return 'r-black';
 };
 
@@ -164,9 +160,20 @@ const render = (items) => {
       document.getElementById('vd').innerText = i.desc || 'Опис не вказано';
       document.getElementById('vid').innerText = 'АРТИКУЛ: ' + i.id.toUpperCase();
       document.getElementById('vWrap').className = 'v-img-wrap ' + getR(i.price);
+      
       const dbnt = document.getElementById('delB');
       dbnt.style.display = isAdmin ? 'block' : 'none';
-      dbnt.onclick = () => { if(confirm('Видалити?')) { remove(ref(db, 'products/'+i.id)); closeM(); } };
+      dbnt.onclick = () => {
+          const verify = prompt('Для видалення введіть адмін-код ще раз:');
+          if(verify === 'xxxshop') {
+              if(confirm('Ви точно хочете видалити цей товар?')) {
+                  remove(ref(db, 'products/'+i.id)); 
+                  closeM();
+              }
+          } else {
+              alert('Невірний код! Видалення скасовано.');
+          }
+      };
       document.getElementById('mView').classList.add('show');
     };
     cat.appendChild(div);
@@ -182,17 +189,17 @@ onValue(ref(db, 'products'), s => {
 window.save = async () => {
   const title = document.getElementById('t').value, price = +document.getElementById('p').value;
   const desc = document.getElementById('d').value, file = document.getElementById('f').files[0];
-  if(!title || price < 5 || !file) return alert('Заповніть всі поля! Ціна мінімум 5 грн.');
+  if(!title || price < 5 || !file) return alert('Заповніть всі поля! Ціна мін. 5 грн.');
   
   document.getElementById('btnS').innerText = '⏳ Завантаження...';
   const fd = new FormData(); fd.append('image', file);
   try {
-    const r = await fetch('https://api.imgbb.com/1/upload?key=03c26bf2c4e95bbd1e544d9d2cad9672', {method:'POST', body:fd});
+    const r = await fetch('https://api.imgbb.com/1/upload?key=' + IMGBB, {method:'POST', body:fd});
     const res = await r.json();
     set(push(ref(db, 'products')), { title, price, desc, img: res.data.url });
     closeM();
     document.getElementById('t').value=''; document.getElementById('p').value=''; document.getElementById('d').value='';
-  } catch(e) { alert('Помилка мережі!'); }
+  } catch(e) { alert('Помилка завантаження!'); }
   finally { document.getElementById('btnS').innerText = '🚀 Опублікувати'; }
 };
 
@@ -209,5 +216,3 @@ document.getElementById('srch').oninput = e => {
 </script>
 </body>
 </html>
-
-

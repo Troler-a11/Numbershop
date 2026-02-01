@@ -233,56 +233,113 @@ const render = (prods) => {
 onValue(productsRef, (snap) => {
   const data = snap.val();
   allProducts = data ? Object.keys(data).map(id => ({ id, ...data[id] })) : [];
-  render(allProducts);
-});
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>SHOP.UA - Pro Catalog</title>
+    <style>
+        :root{--main:#ff4757;--dark:#2f3542;--light:#f1f2f6}
+        body{font-family:Segoe UI,sans-serif;background:var(--light);margin:0;padding-bottom:50px}
+        header{background:white;padding:20px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
+        h1{margin:0;color:var(--dark);font-size:22px}
+        .plus-btn{position:absolute;right:20px;top:20px;font-size:24px;cursor:pointer;color:var(--main);font-weight:bold}
+        .controls{padding:15px;display:flex;flex-direction:column;gap:10px}
+        input,textarea{padding:12px;border:1px solid #ddd;border-radius:10px;outline:none;width:100%;box-sizing:border-box}
+        .price-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:5px}
+        .filter-btn{background:white;border:1px solid var(--main);color:var(--main);padding:8px 15px;border-radius:20px;white-space:nowrap;cursor:pointer;font-size:13px}
+        .filter-btn.active{background:var(--main);color:white}
+        .catalog{display:grid;grid-template-columns:1fr 1fr;gap:15px;padding:15px}
+        .item-card{background:white;border-radius:15px;padding:10px;box-shadow:0 4px 6px rgba(0,0,0,.05);position:relative}
+        .item-card img{width:100%;height:160px;object-fit:cover;border-radius:10px}
+        .item-price{color:var(--main);font-weight:bold;margin:8px 0;font-size:18px}
+        .item-title{font-size:14px;color:#333;height:34px;overflow:hidden}
+        .item-id{font-size:10px;color:#999;margin-top:5px}
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:1000;justify-content:center;align-items:center}
+        .modal.show{display:flex}
+        .modal-content{background:white;width:90%;max-width:400px;padding:20px;border-radius:12px}
+        .save-btn{background:#2ecc71;color:white;border:none;padding:12px;width:100%;border-radius:10px;font-weight:bold;margin-top:10px;cursor:pointer}
+    </style>
+</head>
+<body>
 
-document.getElementById('openAdminBtn').onclick = () => {
-  document.getElementById('adminModal').classList.add('show');
-};
+<header>
+    <h1>BRAND-NAME.UA</h1>
+    <div class="plus-btn" id="plus">+</div>
+</header>
 
-document.getElementById('confirmAuthBtn').onclick = () => {
-  if (document.getElementById('authCode').value === 'xxxshop') {
-    isAdmin = true;
-    document.getElementById('authBox').style.display = 'none';
-    document.getElementById('addBox').style.display = 'block';
-    render(allProducts);
-  } else { alert('Хибний код!'); }
-};
+<div class="controls">
+    <input type="text" id="search" placeholder="Пошук...">
+    <div class="price-filters">
+        <button class="filter-btn active" data-min="0" data-max="999999">Всі</button>
+        <button class="filter-btn" data-min="100" data-max="200">100-200</button>
+        <button class="filter-btn" data-min="201" data-max="500">201-500</button>
+    </div>
+</div>
 
-document.getElementById('addProductBtn').onclick = () => {
-  const title = document.getElementById('pTitle').value;
-  const price = document.getElementById('pPrice').value;
-  const img = document.getElementById('pImgUrl').value;
-  const desc = document.getElementById('pDesc').value;
-  if (title && price && img) {
-    set(push(productsRef), { title, price, img, desc }).then(() => {
-      document.getElementById('adminModal').classList.remove('show');
-      document.getElementById('pTitle').value = '';
-      document.getElementById('pPrice').value = '';
-      document.getElementById('pImgUrl').value = '';
+<div class="catalog" id="catalog"></div>
+
+<div id="modal" class="modal">
+    <div class="modal-content" id="authBox">
+        <input type="password" id="pass" placeholder="Код (xxxshop)">
+        <button class="save-btn" id="goAuth">Увійти</button>
+    </div>
+    <form class="modal-content" id="addBox" style="display:none" action="/upload" method="POST" enctype="multipart/form-data">
+        <input type="text" name="title" placeholder="Назва" required>
+        <input type="number" name="price" placeholder="Ціна" style="margin-top:10px" required>
+        <input type="file" name="image" style="margin-top:10px" required>
+        <button type="submit" class="save-btn">🚀 Зберегти</button>
+    </form>
+</div>
+
+<script type="module">
+    // Firebase залишаємо тільки для відображення списку, якщо ти хочеш синхронізацію
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+    const conf = {
+        apiKey: "AIzaSyD3BQTZeCp74owFliqECbUgufJ3UC6dFC8",
+        authDomain: "vip-shop-a2ec4.firebaseapp.com",
+        projectId: "vip-shop-a2ec4",
+        databaseURL: "https://vip-shop-a2ec4-default-rtdb.firebaseio.com",
+        appId: "1:429877342673:web:bf2fbcddd5f3ba04c670f0"
+    };
+
+    const app = initializeApp(conf);
+    const db = getDatabase(app);
+    let items = [];
+
+    const draw = (data) => {
+        const cat = document.getElementById('catalog');
+        cat.innerHTML = '';
+        data.forEach(i => {
+            const div = document.createElement('div');
+            div.className = 'item-card';
+            div.innerHTML = `
+                <img src="${i.img}">
+                <div class="item-price">${i.price} грн</div>
+                <div class="item-title">${i.title}</div>
+            `;
+            cat.appendChild(div);
+        });
+    };
+
+    onValue(ref(db, 'products'), (s) => {
+        const val = s.val();
+        items = val ? Object.keys(val).map(k => ({id: k, ...val[k]})) : [];
+        draw(items);
     });
-  }
-};
 
-window.del = (id) => { if (confirm('Видалити?')) remove(ref(db, 'products/' + id)); };
-
-document.getElementById('priceFilters').onclick = (e) => {
-  const btn = e.target.closest('.filter-btn');
-  if (!btn) return;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const min = +btn.dataset.min, max = +btn.dataset.max;
-  render(allProducts.filter(p => +p.price >= min && +p.price <= max));
-};
-
-document.getElementById('searchInput').oninput = (e) => {
-  const q = e.target.value.toLowerCase().trim();
-  render(allProducts.filter(p => p.id.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)));
-};
-
-document.getElementById('closeAuthBtn').onclick = () => document.getElementById('adminModal').classList.remove('show');
-document.getElementById('cancelAddBtn').onclick = () => {
-  document.getElementById('authBox').style.display = 'block';
-  document.getElementById('addBox').style.display = 'none';
-};
+    document.getElementById('plus').onclick = () => document.getElementById('modal').classList.add('show');
+    
+    document.getElementById('goAuth').onclick = () => {
+        if(document.getElementById('pass').value === 'xxxshop') {
+            document.getElementById('authBox').style.display = 'none';
+            document.getElementById('addBox').style.display = 'block';
+        }
+    };
 </script>
+</body>
+</html>
+

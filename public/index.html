@@ -353,50 +353,96 @@ input[type="text"],input[type="password"],input[type="number"],textarea{padding:
 
     document.getElementById('plus').onclick = () => document.getElementById('modal').classList.add('show');
     
-    document.getElementById('goAuth').onclick = () => {
-        if(document.getElementById('pass').value === 'xxxshop') {
-            isAdmin = true;
-            document.getElementById('authBox').style.display = 'none';
-            document.getElementById('addBox').style.display = 'block';
-            draw(items);
-        }
-    };
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
 
-    document.getElementById('save').onclick = async () => {
-        const file = document.getElementById('f').files[0];
-        if(!file) return alert('Обери фото!');
-        
-        document.getElementById('save').innerText = 'Завантаження...';
-        const fd = new FormData(); fd.append('image', file);
-        
-        const res = await fetch('https://api.imgbb.com/1/upload?key=6384e37510d935409d023193e5066860', {method:'POST', body:fd});
-        const imgData = await res.json();
-        
-        await set(push(ref(db, 'products')), {
-            title: document.getElementById('t').value,
-            price: document.getElementById('p').value,
-            img: imgData.data.url
-        });
-        
-        location.reload();
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyD3BQTZeCp74owFliqECbUgufJ3UC6dFC8",
+  authDomain: "vip-shop-a2ec4.firebaseapp.com",
+  projectId: "vip-shop-a2ec4",
+  storageBucket: "vip-shop-a2ec4.firebasestorage.app",
+  messagingSenderId: "429877342673",
+  appId: "1:429877342673:web:bf2fbcddd5f3ba04c670f0"
+};
 
-    document.addEventListener('click', e => {
-        if(e.target.classList.contains('delete-btn')) {
-            if(confirm('Видалити?')) remove(ref(db, 'products/' + e.target.dataset.id));
-        }
-        if(e.target.classList.contains('filter-btn')) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            const min = +e.target.dataset.min, max = +e.target.dataset.max;
-            draw(items.filter(i => +i.price >= min && +i.price <= max));
-        }
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const productsRef = ref(db, 'products');
+
+let isAdmin = false;
+let allProducts = [];
+
+const render = (prods) => {
+  const c = document.getElementById('catalog');
+  c.innerHTML = prods.length ? '' : '<div class="no-data">Товарів не знайдено</div>';
+  prods.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.innerHTML = `
+      ${isAdmin ? `<button class="delete-btn" onclick="window.del('${p.id}')">✕</button>` : ''}
+      <img src="${p.img}" onerror="this.src='https://via.placeholder.com/160?text=No+Image'">
+      <div class="item-price">${p.price} грн</div>
+      <div class="item-title">${p.title}</div>
+      <div class="item-id">ID: ${p.id.substring(1, 8).toUpperCase()}</div>
+    `;
+    c.appendChild(card);
+  });
+};
+
+onValue(productsRef, (snap) => {
+  const data = snap.val();
+  allProducts = data ? Object.keys(data).map(id => ({ id, ...data[id] })) : [];
+  render(allProducts);
+});
+
+document.getElementById('openAdminBtn').onclick = () => {
+  document.getElementById('adminModal').classList.add('show');
+};
+
+document.getElementById('confirmAuthBtn').onclick = () => {
+  if (document.getElementById('authCode').value === 'xxxshop') {
+    isAdmin = true;
+    document.getElementById('authBox').style.display = 'none';
+    document.getElementById('addBox').style.display = 'block';
+    render(allProducts);
+  } else { alert('Хибний код!'); }
+};
+
+document.getElementById('addProductBtn').onclick = () => {
+  const title = document.getElementById('pTitle').value;
+  const price = document.getElementById('pPrice').value;
+  const img = document.getElementById('pImgUrl').value;
+  const desc = document.getElementById('pDesc').value;
+  if (title && price && img) {
+    set(push(productsRef), { title, price, img, desc }).then(() => {
+      document.getElementById('adminModal').classList.remove('show');
+      document.getElementById('pTitle').value = '';
+      document.getElementById('pPrice').value = '';
+      document.getElementById('pImgUrl').value = '';
     });
+  }
+};
 
-    document.getElementById('search').oninput = (e) => {
-        const q = e.target.value.toLowerCase();
-        draw(items.filter(i => i.title.toLowerCase().includes(q) || i.id.toLowerCase().includes(q)));
-    };
+window.del = (id) => { if (confirm('Видалити?')) remove(ref(db, 'products/' + id)); };
+
+document.getElementById('priceFilters').onclick = (e) => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const min = +btn.dataset.min, max = +btn.dataset.max;
+  render(allProducts.filter(p => +p.price >= min && +p.price <= max));
+};
+
+document.getElementById('searchInput').oninput = (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  render(allProducts.filter(p => p.id.toLowerCase().includes(q) || p.title.toLowerCase().includes(q)));
+};
+
+document.getElementById('closeAuthBtn').onclick = () => document.getElementById('adminModal').classList.remove('show');
+document.getElementById('cancelAddBtn').onclick = () => {
+  document.getElementById('authBox').style.display = 'block';
+  document.getElementById('addBox').style.display = 'none';
+};
 </script>
-</body>
-</html>

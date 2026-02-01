@@ -92,90 +92,204 @@ const IMGBB_KEY = '03c26bf2c4e95bbd1e544d9d2cad9672';
 
 window.del = (id) => { if(confirm('Видалити?')) remove(ref(db, 'products/' + id)); };
 
-const render = (prods) => {
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PREMIUM SHOP</title>
+<style>
+:root{--main:#ff4757;--dark:#2f3542;--light:#f1f2f6;--gold:#ffd700}
+body{font-family:'Segoe UI',sans-serif;background:var(--light);margin:0;padding-bottom:50px}
+header{background:white;padding:15px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
+.top-order{text-align:center;padding:8px;background:#fff;font-size:13px;border-bottom:1px solid #eee}
+.top-order a{color:var(--main);text-decoration:none;font-weight:bold}
+.plus-btn{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:var(--main)}
+
+.controls{padding:15px;display:flex;flex-direction:column;gap:10px}
+input,textarea,button{padding:12px;border-radius:10px;border:1px solid #ddd;outline:none;font-size:14px}
+.price-filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px}
+.filter-btn{background:white;border:1px solid var(--main);color:var(--main);padding:6px 12px;border-radius:20px;white-space:nowrap;cursor:pointer}
+.filter-btn.active{background:var(--main);color:white}
+
+.catalog{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px}
+.item-card{background:white;border-radius:15px;padding:10px;box-shadow:0 4px 6px rgba(0,0,0,.05);transition:transform 0.3s ease;cursor:pointer;position:relative;border:3px solid transparent}
+.item-card:hover{transform:translateY(-5px)}
+.item-card img{width:100%;height:140px;object-fit:cover;border-radius:10px}
+.item-price{color:var(--main);font-weight:bold;font-size:18px;margin:5px 0}
+
+/* Рамки за ціною */
+.border-low{border-color:#7bed9f}
+.border-mid{border-color:#70a1ff}
+.border-high{border-color:#ffa502}
+.border-gold{border-color:var(--gold);box-shadow:0 0 15px var(--gold);animation:glow 1.5s infinite alternate}
+@keyframes glow{from{box-shadow:0 0 5px var(--gold)}to{box-shadow:0 0 20px var(--gold)}}
+
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:1000;justify-content:center;align-items:center}
+.modal.show{display:flex}
+.modal-content{background:white;width:90%;max-width:400px;padding:20px;border-radius:20px;display:flex;flex-direction:column;gap:12px;max-height:85vh;overflow-y:auto}
+.save-btn{background:#2ecc71;color:white;border:none;font-weight:bold}
+.close-x{align-self:flex-end;font-size:24px;cursor:pointer;color:#888}
+.del-btn{background:#ff4757;color:white;border:none;margin-top:10px}
+#loading{display:none;text-align:center;color:var(--main);font-weight:bold}
+</style>
+</head>
+<body>
+
+<div class="top-order">замовити👇<br><a href="tel:+380XXXXXXXXX">+380XXXXXXXXX</a></div>
+<header>
+  <h1>BRAND-NAME.UA</h1>
+  <div class="plus-btn" id="openAdminBtn">+</div>
+</header>
+
+<div class="controls">
+  <input type="text" id="searchInput" placeholder="Пошук за ID або назвою...">
+  <div class="price-filters" id="priceFilters">
+    <button class="filter-btn active" data-min="0" data-max="99999">Всі</button>
+    <button class="filter-btn" data-min="1" data-max="99">1-99</button>
+    <button class="filter-btn" data-min="100" data-max="1000">100-1000</button>
+    <button class="filter-btn" data-min="1001" data-max="2000">1001-2000</button>
+    <button class="filter-btn" data-min="2001" data-max="99999">2000+</button>
+  </div>
+</div>
+
+<div class="catalog" id="catalog"></div>
+
+<div id="adminModal" class="modal">
+  <div class="modal-content" id="authBox">
+    <div class="close-x" onclick="closeM()">×</div>
+    <h3>Вхід</h3>
+    <input type="password" id="authCode" placeholder="Код">
+    <button class="save-btn" id="loginBtn">Увійти</button>
+  </div>
+  <div class="modal-content" id="addBox" style="display:none">
+    <div class="close-x" onclick="closeM()">×</div>
+    <h3>Новий товар</h3>
+    <input type="text" id="pTitle" placeholder="Назва">
+    <input type="number" id="pPrice" placeholder="Ціна">
+    <textarea id="pDesc" placeholder="Опис товару" rows="3"></textarea>
+    <input type="file" id="pImgFile" accept="image/*">
+    <div id="loading">⏳ Завантаження...</div>
+    <button class="save-btn" id="saveProd">🚀 Зберегти</button>
+  </div>
+</div>
+
+<div id="viewModal" class="modal">
+  <div class="modal-content">
+    <div class="close-x" onclick="closeM()">×</div>
+    <img id="vImg" style="width:100%; border-radius:15px">
+    <h2 id="vTitle" style="margin:10px 0 0 0"></h2>
+    <div id="vPrice" style="font-size:22px; color:var(--main); font-weight:bold"></div>
+    <p id="vDesc" style="color:#555; line-height:1.5"></p>
+    <div id="vId" style="font-size:12px; color:#aaa"></div>
+    <button id="adminDelBtn" class="del-btn" style="display:none">Видалити товар</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+const conf = {
+  apiKey: "AIzaSyD3BQTZeCp74owFliqECbUgufJ3UC6dFC8",
+  authDomain: "vip-shop-a2ec4.firebaseapp.com",
+  projectId: "vip-shop-a2ec4",
+  databaseURL: "https://vip-shop-a2ec4-default-rtdb.firebaseio.com",
+  appId: "1:429877342673:web:bf2fbcddd5f3ba04c670f0"
+};
+
+const app = initializeApp(conf);
+const db = getDatabase(app);
+const prodsRef = ref(db, 'products');
+let isAdmin = false, allP = [];
+const IMGBB = '03c26bf2c4e95bbd1e544d9d2cad9672';
+
+window.closeM = () => { document.querySelectorAll('.modal').forEach(m=>m.classList.remove('show')); };
+
+const getBorder = (p) => {
+    if(p >= 2001) return 'border-gold';
+    if(p >= 1001) return 'border-high';
+    if(p >= 500) return 'border-mid';
+    if(p >= 100) return 'border-low';
+    return '';
+};
+
+const render = (list) => {
   const c = document.getElementById('catalog');
   c.innerHTML = '';
-  prods.forEach(p => {
-    const div = document.createElement('div');
-    div.className = 'item-card';
-    div.innerHTML = `
-      ${isAdmin ? `<button class="del-btn" onclick="del('${p.id}')">✕</button>` : ''}
-      <img src="${p.img}" onerror="this.src='https://via.placeholder.com/150'">
-      <div class="item-price">${p.price} грн</div>
-      <div style="font-size:14px;color:#333">${p.title}</div>
-      <div style="font-size:10px;color:#999;margin-top:4px">ID: ${p.id.substring(1,7).toUpperCase()}</div>
-    `;
-    c.appendChild(div);
+  list.forEach(p => {
+    const d = document.createElement('div');
+    d.className = `item-card ${getBorder(p.price)}`;
+    d.innerHTML = `<img src="${p.img}"><div class="item-price">${p.price} грн</div><div>${p.title}</div><div style="font-size:10px;color:#999">ID: ${p.id.substring(1,7).toUpperCase()}</div>`;
+    d.onclick = () => showFull(p);
+    c.appendChild(d);
   });
 };
 
-onValue(productsRef, (snap) => {
-  const data = snap.val();
-  allProducts = data ? Object.keys(data).map(id => ({ id, ...data[id] })) : [];
-  render(allProducts);
+const showFull = (p) => {
+    document.getElementById('vImg').src = p.img;
+    document.getElementById('vTitle').innerText = p.title;
+    document.getElementById('vPrice').innerText = p.price + ' грн';
+    document.getElementById('vDesc').innerText = p.desc || 'Опис відсутній';
+    document.getElementById('vId').innerText = 'ID: ' + p.id.toUpperCase();
+    const delB = document.getElementById('adminDelBtn');
+    delB.style.display = isAdmin ? 'block' : 'none';
+    delB.onclick = () => {
+        const code = prompt('Введіть адмін-код для видалення:');
+        if(code === 'xxxshop') { remove(ref(db, 'products/'+p.id)); closeM(); }
+        else alert('Код невірний!');
+    };
+    document.getElementById('viewModal').classList.add('show');
+};
+
+onValue(prodsRef, s => {
+  const d = s.val();
+  allP = d ? Object.keys(d).map(id => ({ id, ...d[id] })) : [];
+  render(allP);
 });
 
 document.getElementById('openAdminBtn').onclick = () => {
     document.getElementById('adminModal').classList.add('show');
-    if(isAdmin) {
+    document.getElementById('authBox').style.display = isAdmin ? 'none' : 'flex';
+    document.getElementById('addBox').style.display = isAdmin ? 'flex' : 'none';
+};
+
+document.getElementById('loginBtn').onclick = () => {
+    if(document.getElementById('authCode').value === 'xxxshop') {
+        isAdmin = true;
         document.getElementById('authBox').style.display = 'none';
         document.getElementById('addBox').style.display = 'flex';
-    }
+    } else alert('Нє-а!');
 };
 
-document.getElementById('confirmAuthBtn').onclick = () => {
-  if (document.getElementById('authCode').value === 'xxxshop') {
-    isAdmin = true;
-    document.getElementById('authBox').style.display = 'none';
-    document.getElementById('addBox').style.display = 'flex';
-    render(allProducts);
-  } else { alert('Хибний код!'); }
+document.getElementById('saveProd').onclick = async () => {
+    const t = document.getElementById('pTitle').value, pr = +document.getElementById('pPrice').value;
+    const desc = document.getElementById('pDesc').value, f = document.getElementById('pImgFile').files[0];
+    if(!t || !pr || !f) return alert('Заповни все!');
+    if(pr < 5) return alert('Ціна замала! Мінімум 5 грн.');
+
+    document.getElementById('loading').style.display = 'block';
+    const fd = new FormData(); fd.append('image', f);
+    try {
+        const r = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB}`, {method:'POST', body:fd});
+        const res = await r.json();
+        set(push(prodsRef), { title:t, price:pr, desc:desc, img:res.data.url });
+        closeM();
+    } catch(e) { alert('Помилка!'); }
+    finally { document.getElementById('loading').style.display = 'none'; }
 };
 
-document.getElementById('addProductBtn').onclick = async () => {
-  const title = document.getElementById('pTitle').value;
-  const price = document.getElementById('pPrice').value;
-  const fileInput = document.getElementById('pImgFile');
-  if (!title || !price || !fileInput.files[0]) return alert('Заповніть все!');
-
-  document.getElementById('loadingOverlay').style.display = 'block';
-  document.getElementById('addProductBtn').disabled = true;
-
-  const formData = new FormData();
-  formData.append('image', fileInput.files[0]);
-
-  try {
-    const resp = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, {
-      method: 'POST',
-      body: formData
-    });
-    const resData = await resp.json();
-    if (resData.success) {
-      set(push(productsRef), { title, price, img: resData.data.url });
-      document.getElementById('adminModal').classList.remove('show');
-      document.getElementById('pTitle').value = ''; document.getElementById('pPrice').value = '';
-    }
-  } catch (e) { alert('Помилка завантаження фото'); }
-  finally {
-    document.getElementById('loadingOverlay').style.display = 'none';
-    document.getElementById('addProductBtn').disabled = false;
-  }
+document.getElementById('priceFilters').onclick = e => {
+    const b = e.target.closest('.filter-btn'); if(!b) return;
+    document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    render(allP.filter(p => +p.price >= +b.dataset.min && +p.price <= +b.dataset.max));
 };
 
-document.getElementById('priceFilters').onclick = (e) => {
-  const btn = e.target.closest('.filter-btn');
-  if (!btn) return;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const min = +btn.dataset.min, max = +btn.dataset.max;
-  render(allProducts.filter(p => +p.price >= min && +p.price <= max));
-};
-
-document.getElementById('searchInput').oninput = (e) => {
-  const q = e.target.value.toLowerCase().trim();
-  render(allProducts.filter(p => p.title.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)));
+document.getElementById('searchInput').oninput = e => {
+    const q = e.target.value.toLowerCase();
+    render(allP.filter(p => p.title.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)));
 };
 </script>
 </body>
 </html>
-
